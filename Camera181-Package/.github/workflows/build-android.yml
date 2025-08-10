@@ -42,23 +42,21 @@ jobs:
         echo "ANDROID_HOME: $ANDROID_HOME"
         echo "JAVA_HOME: $JAVA_HOME"
         
-    - name: Navigate to Flutter project and get dependencies
+    - name: Fix Android Embedding and Build APK
       run: |
         cd ios_camera_flutter_app
+        echo "=== Current structure ==="
         ls -la
-        cat pubspec.yaml
+        echo "=== Cleaning project ==="
         flutter clean
+        echo "=== Recreating Android project ==="
+        flutter create --org com.iosCamera --project-name ios_camera_flutter_app --platforms android . --overwrite
+        echo "=== Getting dependencies ==="
         flutter pub get
-        
-    - name: Accept Android licenses
-      run: |
-        cd ios_camera_flutter_app
-        yes | flutter doctor --android-licenses || true
-        
-    - name: Build Flutter APK (Release)
-      run: |
-        cd ios_camera_flutter_app
-        flutter build apk --release --verbose
+        echo "=== Accepting licenses ==="
+        yes | flutter doctor --android-licenses 2>/dev/null || echo "Licenses handled"
+        echo "=== Building APK ==="
+        flutter build apk --release --verbose --no-shrink
         
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
