@@ -1,0 +1,82 @@
+name: Build Flutter Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-flutter-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        cache: true
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 34
+        build-tools: 34.0.0
+        
+    - name: Check versions
+      run: |
+        flutter --version
+        flutter doctor -v
+        java -version
+        echo "ANDROID_HOME: $ANDROID_HOME"
+        echo "JAVA_HOME: $JAVA_HOME"
+        
+    - name: Navigate to Flutter project and get dependencies
+      run: |
+        cd ios_camera_flutter_app
+        ls -la
+        cat pubspec.yaml
+        flutter clean
+        flutter pub get
+        
+    - name: Accept Android licenses
+      run: |
+        cd ios_camera_flutter_app
+        yes | flutter doctor --android-licenses || true
+        
+    - name: Build Flutter APK (Release)
+      run: |
+        cd ios_camera_flutter_app
+        flutter build apk --release --verbose
+        
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: camera-app-release-apk
+        path: ios_camera_flutter_app/build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30
+        if-no-files-found: error
+        
+    - name: Build Flutter APK (Debug)
+      run: |
+        cd ios_camera_flutter_app
+        flutter build apk --debug
+        
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: camera-app-debug-apk
+        path: ios_camera_flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 30
+        if-no-files-found: warn
